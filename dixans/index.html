@@ -189,6 +189,31 @@
     </style>
 </head>
 <body>
+    <div id="pw-mask" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:#f8fafc;display:flex;align-items:center;justify-content:center;">
+  <div style="box-shadow:0 2px 24px #2563eb22;background:#fff;border-radius:16px;padding:2.5em 2em;max-width:90vw;">
+    <div style="font-weight:bold;font-size:1.4em;text-align:center;color:#2563eb;margin-bottom:1em;">请输入访问密码</div>
+    <input type="password" id="pw-input" placeholder="Password" style="font-size:1.1em;padding:0.5em 1em;border-radius:8px;border:1px solid #ddd;width:100%;box-sizing:border-box;margin-bottom:1em;">
+    <button onclick="checkPW()" style="width:100%;background:#2563eb;color:#fff;border:none;font-size:1.15em;font-weight:bold;border-radius:8px;padding:0.6em 0;cursor:pointer;letter-spacing:1px;">进入</button>
+    <div id="pw-wrong" style="color:#f44336;font-size:1em;text-align:center;margin-top:0.6em;display:none;">密码错误</div>
+  </div>
+</div>
+<script>
+function checkPW() {
+  var real = "Kuaikuailele999"; // <<<--- 设置你的密码
+  var input = document.getElementById("pw-input").value;
+  if (input === real) {
+    document.getElementById("pw-mask").style.display = "none";
+    sessionStorage.setItem("passed", "1");
+  } else {
+    document.getElementById("pw-wrong").style.display = "block";
+  }
+}
+if (sessionStorage.getItem("passed") === "1") {
+  document.getElementById("pw-mask").style.display = "none";
+} else {
+  document.getElementById("pw-input").focus();
+}
+</script>
     <div class="container">
         <h1>Dix ans</h1>
         <div class="timeline" id="timeline">
