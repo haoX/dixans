@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dix ans - Interactive Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        body { font-family: 'Inter', Arial, sans-serif; background: #F8F9FB; color: #3D566E; margin: 0; padding: 0; text-align: center;}
+        h1 { margin-top: 18px; font-size: 34px; color: #2563eb; margin-bottom: 6px;}
+        .back-btn { position: fixed; top: 18px; right: 20px; z-index: 99; padding: 10px 30px; background: #2563eb; color: #fff; border: none; border-radius: 25px; font-size: 18px; font-weight: 600; cursor: pointer; letter-spacing: 1px; box-shadow: 0 2px 8px 0 rgba(64,158,255,0.13); transition: background 0.2s;}
+        .back-btn:hover { background: #154ca6;}
+        #map { width: 100vw; height: 48vh; min-height: 280px; max-height: 540px; border-radius: 0 0 26px 26px; box-shadow: 0 6px 20px 0 rgba(33,114,235,0.06);}
+        #thumbnail { width: 94vw; max-width: 400px; min-height: 180px; background: #fff7e6; border: 2px solid #f3e3d1; border-radius: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.11); display: none; flex-direction: column; align-items: center; justify-content: flex-start; padding: 24px 12px 18px 12px; position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%); z-index: 88; transition: box-shadow 0.22s;}
+        #thumb-title { font-size: 19px; font-weight: 700; color: #495867; margin-bottom: 10px;}
+        #thumb-text { font-size: 15px; color: #3D566E; margin: 10px 0 14px 0;}
+        .close-thumb { position: absolute; right: 14px; top: 8px; font-size: 22px; color: #2563eb; background: none; border: none; cursor: pointer; font-weight: bold;}
+        .carousel { width: 100%; display: flex; flex-direction: column; align-items: center;}
+        .carousel-img-wrap { width: 240px; height: 200px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 10px; margin-bottom: 10px; position: relative; overflow: hidden;}
+        .carousel-img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; margin: 0 auto; object-fit: contain; border-radius: 10px; background: #f5f5f5;}
+        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(37,99,235,0.16); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 22px; color: #2563eb; cursor: pointer; z-index: 2; display: flex; align-items: center; justify-content: center; transition: background 0.18s;}
+        .carousel-btn:hover { background: #2563eb; color: #fff;}
+        .carousel-btn.left { left: 2px;}
+        .carousel-btn.right { right: 2px;}
+        .carousel-indicator { text-align: center; margin-top: 3px; color: #999; font-size: 14px; letter-spacing: 1px;}
+        @media (max-width: 900px) { #map { height: 42vh; min-height: 180px;} #thumbnail { min-height: 125px; max-width: 99vw;} .carousel-img-wrap { width: 72vw; max-width: 98vw; height: 160px;} }
+        @media (max-width: 480px) { .carousel-img-wrap { height: 120px; } #thumbnail { padding: 12px 1vw 14px 1vw;} }
+    </style>
+</head>
+<body>
+<script>
+if (sessionStorage.getItem("dixans_login") !== "1") {
+  window.location.href = "index.html";
+}
+</script>
+<button class="back-btn" onclick="window.location.href='index.html'">&larr; 返回时间线</button>
+<h1>Dix ans</h1>
+<div id="map"></div>
+<div id="thumbnail">
+    <button class="close-thumb" onclick="document.getElementById('thumbnail').style.display='none'">&times;</button>
+    <div id="thumb-title"></div>
+    <div id="thumb-carousel"></div>
+    <div id="thumb-text"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var mapboxToken = "pk.eyJ1IjoiaGFveCIsImEiOiJjbWN2eWQxc2MwMzNwMmxyMmU2MDZrbnIwIn0.BffxMD6cWVbZoplzFcz_Tg"; // <<<--- 填入你的 Mapbox token
+    const parisSlides = [
+        { image: "img4.png", text: "欢迎Lego" },
+        { image: "img5.png", text: "我们的第一辆车-GLC" },
+        { image: "img6.png", text: "有了属于我们的小家" },
+        { image: "img8.png", text: "我们的天使降生了" },
+        { image: "img9.png", text: "小天使长大了" },
+        { image: "img10.png", text: "开上了老婆的 dream car" }
+    ];
+    const locations = [
+        { name: "Tianjin", coords: [39.3434, 117.3616], image: "img1.png", text: "我们领证了……" },
+        { name: "Bora Bora", coords: [-16.5004, -151.7415], image: "img2.png", text: "Bora Bora 的蜜月" },
+        { name: "Huaxian", coords: [35.5753, 114.5183], image: "img3.png", text: "我们温馨的婚礼" },
+        { name: "Mauritius", coords: [-20.348404, 57.552152], image: "img7.png", text: "去毛里求斯是为了……" },
+        { name: "Paris", coords: [48.8566, 2.3522], image: null, text: null }
+    ];
+    var map = L.map('map').setView([30,30], 2);
+    L.tileLayer(
+        'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+            attribution: '© Mapbox © OpenStreetMap',
+            maxZoom: 18,
+            tileSize: 512,
+            zoomOffset: -1,
+            id: 'haox/cmcym5h0m00a301sqfp1qermi', // <<<--- 填入你的 mapbox style id
+            accessToken: mapboxToken
+        }
+    ).addTo(map);
+
+    locations.forEach(loc => {
+        if(loc.name === "Paris") return;
+        const marker = L.marker(loc.coords).addTo(map).bindPopup(loc.name);
+        marker.on('click', function () {
+            document.getElementById("thumb-title").innerText = loc.name;
+            document.getElementById("thumb-text").innerText = loc.text;
+            document.getElementById("thumb-carousel").innerHTML = `
+                <div class="carousel">
+                    <div class="carousel-img-wrap">
+                        <img src="${loc.image}" class="carousel-img" />
+                    </div>
+                </div>
+            `;
+            document.getElementById("thumbnail").style.display = "flex";
+        });
+    });
+
+    // Paris marker轮播
+    const markerParis = L.marker([48.8566, 2.3522]).addTo(map).bindPopup("Paris");
+    markerParis.on('click', function () {
+        let current = 0;
+        function renderParisCarousel() {
+            document.getElementById("thumb-carousel").innerHTML = `
+                <div class="carousel">
+                    <div class="carousel-img-wrap">
+                        <button class="carousel-btn left" ${current===0?'disabled':''}>&larr;</button>
+                        <img src="${parisSlides[current].image}" class="carousel-img" />
+                        <button class="carousel-btn right" ${current===parisSlides.length-1?'disabled':''}>&rarr;</button>
+                    </div>
+                    <div class="carousel-indicator">${current+1} / ${parisSlides.length}</div>
+                </div>
+            `;
+            document.getElementById("thumb-text").innerText = parisSlides[current].text;
+            const leftBtn = document.querySelector('.carousel-btn.left');
+            const rightBtn = document.querySelector('.carousel-btn.right');
+            if(leftBtn) leftBtn.onclick = function(e){e.stopPropagation();current=Math.max(0,current-1);renderParisCarousel();};
+            if(rightBtn) rightBtn.onclick = function(e){e.stopPropagation();current=Math.min(parisSlides.length-1,current+1);renderParisCarousel();};
+        }
+        document.getElementById("thumb-title").innerText = "Paris";
+        renderParisCarousel();
+        document.getElementById("thumbnail").style.display = "flex";
+    });
+    map.on('click', function(e){
+        document.getElementById("thumbnail").style.display = "none";
+    });
+</script>
+</body>
+</html>
